@@ -3402,10 +3402,12 @@ do
     end
   end)
   -- Announced only once a change has STAYED: a new stand after 2 s, one gone
-  -- after 8 s. Live, a stand stepping off its latch for a moment (dying and
-  -- respawning, waiting out the prey's shield with nobody to ride) fired "Alone
-  -- again" and then "2 stands" a second later, after every kill.
-  local announced, pending = nil, nil
+  -- after 30 s. Live, a stand stepping off its latch for a moment (waiting out
+  -- the prey's shield with nobody to ride) fired "Alone again" and then "2
+  -- stands" a second later, after every kill; a squadmate that died was off the
+  -- roster ~14 s (measured) -- still the squad, not a departure.
+  local GONE, ARRIVED = 30, 2
+  local announced, change = nil, 0
   local function squadNames()
     local names = {}
     for p in pairs(S.squadSet or {}) do names[#names + 1] = p.Name end
@@ -3433,13 +3435,16 @@ do
     elseif kind == "hunting" then
       Core.notify("Stepping in", "A hunter left, so this stand takes its place.")
     elseif kind == "roster" then
+      -- every roster change restarts the wait: a timer from an earlier absence
+      -- never fires into a later, shorter one
+      change += 1
       local names = squadNames()
       local sig = table.concat(names, ",")
-      if sig == announced then pending = nil; return end
+      if sig == announced then return end
       if announced == nil and #names == 0 then announced = sig; return end
-      pending = sig
-      task.delay(#names < countOf(announced) and 8 or 2, function()
-        if pending == sig then pending = nil; announce(sig) end
+      local mine = change
+      task.delay(#names < countOf(announced) and GONE or ARRIVED, function()
+        if change == mine then announce(sig) end
       end)
     end
   end)
