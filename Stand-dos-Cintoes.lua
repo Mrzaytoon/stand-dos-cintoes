@@ -3402,11 +3402,11 @@ do
     end
   end)
   -- Announced only once a change has STAYED: a new stand after 2 s, one gone
-  -- after 30 s. Live, a stand stepping off its latch for a moment (waiting out
-  -- the prey's shield with nobody to ride) fired "Alone again" and then "2
-  -- stands" a second later, after every kill; a squadmate that died was off the
-  -- roster ~14 s (measured) -- still the squad, not a departure.
-  local GONE, ARRIVED = 30, 2
+  -- after 60 s. Measured on a .v loop: every kill takes the other stand off
+  -- this one's roster for 14-29 s (the carry, the respawn, the shield), which
+  -- fired "Alone again" and then "2 stands" once per kill. That is still the
+  -- squad, not a departure.
+  local GONE, ARRIVED = 60, 2
   local announced, change = nil, 0
   local function squadNames()
     local names = {}
