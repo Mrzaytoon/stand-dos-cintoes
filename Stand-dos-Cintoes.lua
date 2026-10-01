@@ -158,7 +158,7 @@ do
   -- the distance applies to a hand-tuned ("Custom") angle too, not only presets
   if type(Core.config.HUNT_DISTANCE) == "number" then Cfg.data["stand.approach.radius"] = Core.config.HUNT_DISTANCE end
   -- the interface's own switches, read by the API below
-  for _, key in ipairs({ "GUI", "ASSETS", "NOTIFY", "BLACK_SCREEN" }) do Core.config[key] = read(key) end
+  for _, key in ipairs({ "GUI", "ASSETS", "NOTIFY", "BLACK_SCREEN", "ANTI_AFK" }) do Core.config[key] = read(key) end
   -- HUNT_FROM is a preset name: accept any letter case
   local from = Core.config.HUNT_FROM
   if type(from) == "string" then
@@ -3698,6 +3698,21 @@ do
   local want = Core.config.BLACK_SCREEN
   if want == nil then want = S.ownerName ~= "" and S.owner ~= LP end
   if want then task.defer(function() if L.live() then Screen.set(true) end end) end
+end
+
+-- Anti-AFK: Roblox kicks a client idle for 20 minutes. An alt is never touched,
+-- so answer the idle signal with a click nobody sees. _G.ANTI_AFK = false turns it off.
+if Core.config.ANTI_AFK ~= false then
+  local ok, VirtualUser = pcall(game.GetService, game, "VirtualUser")
+  if ok and VirtualUser then
+    L.hold(LP.Idled:Connect(function()
+      if not L.live() then return end
+      pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+      end)
+    end))
+  end
 end
 
 Core.ASSET_FILES = { "fonts/Figtree-500.ttf", "fonts/Figtree-700.ttf", "fonts/Syne-800.ttf", "glow.png", "icons/activity.png", "icons/anchor.png", "icons/arrow-down-to-line.png", "icons/arrow-down.png", "icons/check.png", "icons/chevron-down.png", "icons/circle-alert.png", "icons/circle-dot.png", "icons/clipboard-paste.png", "icons/command.png", "icons/copy.png", "icons/crosshair.png", "icons/crown.png", "icons/eye.png", "icons/flame.png", "icons/gauge.png", "icons/ghost.png", "icons/grab.png", "icons/hand.png", "icons/keyboard.png", "icons/layout-dashboard.png", "icons/link.png", "icons/lock.png", "icons/minus.png", "icons/move.png", "icons/octagon-x.png", "icons/play.png", "icons/plus.png", "icons/power.png", "icons/radar.png", "icons/rotate-ccw.png", "icons/scroll-text.png", "icons/search.png", "icons/settings.png", "icons/shield.png", "icons/skull.png", "icons/sparkles.png", "icons/square.png", "icons/sword.png", "icons/swords.png", "icons/target.png", "icons/timer.png", "icons/trash-2.png", "icons/undo-2.png", "icons/user.png", "icons/users.png", "icons/volume-2.png", "icons/wind.png", "icons/x.png", "icons/zap.png", "shadow.png", "slash.png", "tone.png" }
