@@ -91,8 +91,16 @@ function Cfg.save()
     writefile(Cfg.PATH, HttpService:JSONEncode(Cfg.data))
   end)
 end
+-- What a fresh executor runs with: the lines above the loadstring in
+-- standcore/loader.lua, baked in here by the build. So a bare loadstring with
+-- only the host set runs exactly the config the loader spells out, and so does
+-- everyone else. A saved setting or a _G line still wins over these.
+local DEFAULTS = { PREFIX = ".", MESSAGES = false, GUI = false, BLACK_SCREEN = true, ANTI_AFK = true, HUNT_DISTANCE = 7.4, HUNT_FROM = "Behind", MAX_STANDS = 4, YIELD = true, HUNT_WITHOUT_HOST = true, FOLLOW_SPEED = 1, OFFSET_RIGHT = 3, OFFSET_UP = 2.5, OFFSET_BACK = 4, ASSETS = "https://raw.githubusercontent.com/Mrzaytoon/stand-dos-cintoes/main/StandDosCintoes/" }
+local HOUSE = {}
+Core.defaults = DEFAULTS
 function Cfg.feat(id, default)
   local value = Cfg.data[id]
+  if value == nil then value = HOUSE[id] end
   if value == nil then return default end
   return value
 end
@@ -117,7 +125,7 @@ do
 end
 
 -- The executor config, the way a loadstring script is set up:
---   _G.HOST_USERNAME = "YourMainAccount"   _G.HUNT_DISTANCE = 6.1   ...
+--   _G.HOST_USERNAME = "YourMainAccount"   _G.HUNT_DISTANCE = 7.4   ...
 --   loadstring(game:HttpGet("<raw url>"))()
 -- Every key is optional and wins over the saved settings each time it is set,
 -- so the lines above the loadstring are always what runs. Read from _G first
@@ -143,7 +151,10 @@ do
     M1 = { "useM1", "boolean" }, AUTO_ULT = { "autoUlt", "boolean" }, CAMERA = { "camera", "boolean" },
     DEEP_HIDE = { "hideDeep", "boolean" }, LOW_HP = { "lowHP", "number" }, SQUAD = { "squad.on", "boolean" },
   }
+  local PRESETS = { "Behind", "Behind left", "Behind right", "Left flank", "Right flank", "In front", "Above", "Below", "Point blank" }
   for key, spec in pairs(KEYS) do
+    local shipped = DEFAULTS[key]
+    if type(shipped) == spec[2] then HOUSE["stand." .. spec[1]] = shipped end
     local v = read(key)
     if v ~= nil then
       if spec[2] == "number" and type(v) == "string" then v = tonumber(v) or v end
@@ -156,15 +167,21 @@ do
     end
   end
   -- the distance applies to a hand-tuned ("Custom") angle too, not only presets
+  if type(DEFAULTS.HUNT_DISTANCE) == "number" then HOUSE["stand.approach.radius"] = DEFAULTS.HUNT_DISTANCE end
   if type(Core.config.HUNT_DISTANCE) == "number" then Cfg.data["stand.approach.radius"] = Core.config.HUNT_DISTANCE end
-  -- the interface's own switches, read by the API below
-  for _, key in ipairs({ "GUI", "ASSETS", "NOTIFY", "BLACK_SCREEN", "ANTI_AFK" }) do Core.config[key] = read(key) end
+  -- The interface's own switches, read by the API below. BLACK_SCREEN keeps its
+  -- own default (on for an alt: a host is set and it is not this account)
+  -- unless the loader ships it off.
+  for _, key in ipairs({ "GUI", "ASSETS", "NOTIFY", "BLACK_SCREEN", "ANTI_AFK" }) do
+    local v = read(key)
+    if v == nil and (key ~= "BLACK_SCREEN" or DEFAULTS[key] == false) then v = DEFAULTS[key] end
+    Core.config[key] = v
+  end
   -- HUNT_FROM is a preset name: accept any letter case
-  local from = Core.config.HUNT_FROM
-  if type(from) == "string" then
-    for _, name in ipairs({ "Behind", "Behind left", "Behind right", "Left flank", "Right flank", "In front", "Above", "Below", "Point blank" }) do
-      if name:lower() == from:lower() then Cfg.data["stand.approach.preset"] = name end
-    end
+  for _, name in ipairs(PRESETS) do
+    local shipped, from = DEFAULTS.HUNT_FROM, Core.config.HUNT_FROM
+    if type(shipped) == "string" and name:lower() == shipped:lower() then HOUSE["stand.approach.preset"] = name end
+    if type(from) == "string" and name:lower() == from:lower() then Cfg.data["stand.approach.preset"] = name end
   end
 end
 
@@ -3492,7 +3509,7 @@ do
     if Core.uiStarting then return true end
     Core.uiStarting = true
     task.spawn(function()
-      if Core.config.ASSETS then
+      if type(Core.config.ASSETS) == "string" then
         local n = Core.fetchAssets(Core.config.ASSETS, Core.ASSET_FILES)
         if n > 0 then print("[Stand] fetched " .. n .. " interface files") end
       end
@@ -5702,7 +5719,7 @@ do
       local row = U.frame(side, { LayoutOrder = order })
       U.list(row, "y", 4)
       U.text(row, label, { TextSize = 13, TextColor3 = c.mute })
-      return U.slider(row, { min = min, max = max, step = step, value = Core.S.approach[key], default = key == "angle" and 0 or key == "radius" and 3 or 0,
+      return U.slider(row, { min = min, max = max, step = step, value = Core.S.approach[key], default = key == "radius" and (Core.defaults.HUNT_DISTANCE or 6.1) or 0,
         format = function(v) return U.fmt(v, step < 1 and 1 or 0) .. unit end,
         onChange = function(v)
           -- the distance is the one hunt-distance knob (.dist, the loader, here)

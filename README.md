@@ -29,8 +29,10 @@ _G.ASSETS            = "https://raw.githubusercontent.com/Mrzaytoon/stand-dos-ci
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Mrzaytoon/stand-dos-cintoes/main/Stand-dos-Cintoes.lua"))()
 ```
 
-Every line above the loadstring is optional. Leave one out and the stand keeps
-the value it saved last time.
+Only `HOST_USERNAME` is needed. The other lines show the defaults built into
+the script, so everyone starts from the same config, with or without them.
+Leave a line out and the stand keeps the value it saved last time, or the
+default on a fresh executor.
 
 ## Commands
 
@@ -48,7 +50,7 @@ Typed in chat by the host.
 | `.m1` | punch barrage in front of you; again to stop |
 | `.dash` | dash spam on or off |
 | `.ult` | awaken when the bar is full |
-| `.dist 5` | how far they keep from the prey, in studs (6.1 is the measured M1 reach) |
+| `.dist 5` | how far they keep from the prey, in studs (default 7.4; plain punches were measured to land from 6.1) |
 | `.angle behind` | the angle a lone stand strikes from (`left flank`, `in front`, `above`, ...) |
 | `.pose right` | where they wait beside you (`left`, `behind`, `above`) |
 | `.auto` | the stands find each other and take a slot each |
